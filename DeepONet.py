@@ -20,7 +20,7 @@ class DeepONet:
         Returns:
             Tuple: Initialised weights and biases.
         """
-        # with tf.device('/GPU:0'): #avoid laptop error
+        # with tf.device('/CPU:0'): # if running on laptop running Apple Silicon (Debugging only)
         L = len(layers)
         W = []
         b = []
@@ -80,7 +80,7 @@ class DeepONet:
             Tuple: Tuple containing the initialised weights and biases.
         """
         std = 0.01
-        # with tf.device('/GPU:0'): #avoid laptop error
+        # with tf.device('/CPU:0'): # if running on laptop running Apple Silicon (Debugging only)
         weight = tf.Variable(
             tf.random.normal(shape=shape_w, stddev=std, dtype=self.tf_data_type),
             dtype=self.tf_data_type

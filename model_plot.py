@@ -3,17 +3,22 @@ import numpy as np
 
 
 class Plot:
-    def __init__(self):
-        pass
+    def __init__(self, save_results_to):
+        """
+        Initialises the Plot class.
 
-    def Plotting(self, train_loss, test_loss, save_results_to):
+        Args:
+            save_results_to (str): Directory to save results to.
+        """        
+        self.save_results_to = save_results_to
+
+    def Plotting(self, train_loss, test_loss):
         """
         Plots the loss history.
 
         Args:
             train_loss (list): List of training loss.
             test_loss (list): List of testing loss.
-            save_results_to (str): Directory to save results to.
         """
         plt.rcParams.update({"font.size": 15})
         num_epoch = train_loss.shape[0]
@@ -26,11 +31,11 @@ class Plot:
         ax.set_ylabel("Loss")
         ax.set_xlabel("Epochs")
         ax.legend(loc="upper left")
-        fig.savefig(save_results_to + "/loss_train.png")
+        fig.savefig(self.save_results_to + "/loss_train.png")
 
         ## Save test loss
-        np.savetxt(save_results_to + "/loss_test", test_loss[:, 0])
-        np.savetxt(save_results_to + "/epochs", x)
+        np.savetxt(self.save_results_to + "/loss_test", test_loss[:, 0])
+        np.savetxt(self.save_results_to + "/epochs", x)
 
         fig = plt.figure(constrained_layout=True, figsize=(7, 5))
         gs = fig.add_gridspec(1, 1)
@@ -40,7 +45,7 @@ class Plot:
         ax.set_ylabel("Loss")
         ax.set_xlabel("Epochs")
         ax.legend(loc="upper left")
-        fig.savefig(save_results_to + "/loss_test.png")
+        fig.savefig(self.save_results_to + "/loss_test.png")
 
         ########## NOT LOG PlOTS
         plt.rcParams.update({"font.size": 15})
@@ -53,7 +58,7 @@ class Plot:
         ax.set_ylabel("Loss")
         ax.set_xlabel("Epochs")
         ax.legend(loc="upper left")
-        fig.savefig(save_results_to + "/loss_train_notlog.png")
+        fig.savefig(self.save_results_to + "/loss_train_notlog.png")
 
         fig = plt.figure(constrained_layout=True, figsize=(7, 5))
         gs = fig.add_gridspec(1, 1)
@@ -62,4 +67,4 @@ class Plot:
         ax.set_ylabel("Loss")
         ax.set_xlabel("Epochs")
         ax.legend(loc="upper left")
-        fig.savefig(save_results_to + "/loss_test_notlog.png")
+        fig.savefig(self.save_results_to + "/loss_test_notlog.png")

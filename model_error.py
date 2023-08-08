@@ -31,35 +31,35 @@ class Error_Test:
         ######################
 
         # CNN1
-        b_out, self.W_b_dict["W_br1"], self.W_b_dict["b_br1"] = \
-            self.model.conv_layer(f_test, self.W_b_dict["W_br1"], self.W_b_dict["b_br1"], stride, actn=tf.nn.relu)
+        b_out, self.W_b_dict["W_1 conv br"], self.W_b_dict["b_1 conv br"] = \
+            self.model.conv_layer(f_test, self.W_b_dict["W_1 conv br"], self.W_b_dict["b_1 conv br"], stride, actn=tf.nn.relu)
         pool = self.model.avg_pool(b_out, 2, 2)
 
         # CNN2
-        b_out, self.W_b_dict["W_br2"], self.W_b_dict["b_br2"] = \
-            self.model.conv_layer(pool, self.W_b_dict["W_br2"], self.W_b_dict["b_br2"], stride, actn=tf.nn.relu)
+        b_out, self.W_b_dict["W_2 conv br"], self.W_b_dict["b_2 conv br"] = \
+            self.model.conv_layer(pool, self.W_b_dict["W_2 conv br"], self.W_b_dict["b_2 conv br"], stride, actn=tf.nn.relu)
         pool = self.model.avg_pool(b_out, 2, 2)
 
         # CNN3
-        b_out, self.W_b_dict["W_br3"], self.W_b_dict["b_br3"] = \
-            self.model.conv_layer(pool, self.W_b_dict["W_br3"], self.W_b_dict["b_br3"], stride, actn=tf.nn.relu)
+        b_out, self.W_b_dict["W_3 conv br"], self.W_b_dict["b_3 conv br"] = \
+            self.model.conv_layer(pool, self.W_b_dict["W_3 conv br"], self.W_b_dict["b_3 conv br"], stride, actn=tf.nn.relu)
         pool = self.model.avg_pool(b_out, 2, 2)
         
         # CNN4
-        b_out, self.W_b_dict["W_br4"], self.W_b_dict["b_br4"] = \
-            self.model.conv_layer(pool, self.W_b_dict["W_br4"], self.W_b_dict["b_br4"], stride, actn=tf.nn.relu)
+        b_out, self.W_b_dict["W_4 conv br"], self.W_b_dict["b_4 conv br"] = \
+            self.model.conv_layer(pool, self.W_b_dict["W_4 conv br"], self.W_b_dict["b_4 conv br"], stride, actn=tf.nn.relu)
         pool = self.model.avg_pool(b_out, 2, 2)
         flat = self.model.flatten_layer(pool)
 
         # FNN
-        u_B = self.model.fnn_B(self.W_b_dict["W_br_fnn"], self.W_b_dict["b_br_fnn"], flat)
+        u_B = self.model.fnn_B(self.W_b_dict["W_5 fc br"], self.W_b_dict["b_5 fc br"], flat)
 
         #####################
         ### Trunk Network ###
         #####################
 
         # FNN
-        u_T = self.model.fnn_T(self.W_b_dict["W_tr"], self.W_b_dict["b_tr"], x_test, Xmin, Xmax)
+        u_T = self.model.fnn_T(self.W_b_dict["W_1 fc tr"], self.W_b_dict["b_1 fc tr"], x_test, Xmin, Xmax)
 
         ###
 

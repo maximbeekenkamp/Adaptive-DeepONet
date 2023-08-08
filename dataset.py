@@ -128,6 +128,9 @@ class DataSet:
         f_norm_train = f_norm_train.astype(np.float64)
         f_norm_test = f_norm_test.astype(np.float64)
 
+        print("######### Data Info #########")
+        print("F train shape", F_train.shape)
+        print("#############################")
         return F_train, U_train, F_test, U_test, X, \
             u_train_mean, u_train_std, f_norm_train, f_norm_test
 
