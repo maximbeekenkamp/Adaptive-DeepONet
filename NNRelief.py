@@ -170,6 +170,23 @@ def fc_pruning(weight, bias, X_prune, a=0.95):
         fc_count (int): Number of connections pruned in the lth fully connected layer. Used to update the
         total number of connections pruned in the entire network inside the pruning() function.
     """    
+
+    ######
+    # Conversation with Philip:
+    # What if we implement the mask by applying an activation function to the importance scores, centred around a/(m_{l-1})
+    # The centre is arbitrary but it seems like the alpha chosen in the paper is similarly arbitrary. Any over/under pruning cause 
+    # by the denominator should be inconsequential due to the iterative nature of the pruning algorithm. In principle however, the 
+    # denominator is chosen because any value less than a/(m_{l-1}) should never be important and therefore should be pruned.
+    # Taking an alpha of 0.9 and a denominator (or number of connections) of 10, we get a threshold of 0.09. Intuitively, this means
+    # that any connection that contributes less than 0.09 to the total importance of the neuron isn't important and should be pruned.
+    # This operation should be trivially vectorisable, and allow us to create a mask without disrupting the shape or order of the input
+    # weight matrix. This mask can then be multiplied to the weight matrix, setting all the unimportant connections to zero. In theory,
+    # this should be equivalent to the original algorithm, but should be much faster.
+
+    # Open to try different activation functions, but I think a classic step function would work best. Other activations functions,
+    # because theyre smooth, will have a band of values that are neither 0 or 1, which will cause problems when we multiply the mask
+    # to the weight matrix. Ideally, we want a mask that is either 0 or 1, so that when we multiply it to the weight matrix, we get
+    # either 0 or the original value. 
     
     fc_count = 0
     for l in range(len(weight)):
@@ -194,45 +211,63 @@ def fc_pruning(weight, bias, X_prune, a=0.95):
         scores_w = scores / S_c_out
         scores_b = b_abs / S_c_out
 
-        scores_sorted_w = tf.sort(scores_w, axis=0, direction='DESCENDING')
-        arg_scores_sorted_w = tf.argsort(scores_w, axis=0, direction='DESCENDING')
-        scores_sorted_b = tf.sort(scores_b, axis=0, direction='DESCENDING')
-        arg_scores_sorted_b = tf.argsort(scores_b, axis=0, direction='DESCENDING')
-        
-        # pruning, calculate the index i where the cumulative sum of the scores is >= a
-        w_mask = w_mask_fn(scores_sorted_w, a)
-        pruned_scores_b = b_pruned_scores(scores_sorted_b, a)
+    #############################################
+    ##### Activation masking implementation #####
+    #############################################
+        w_mask = step_activation(scores_w, a)
+        b_mask = step_activation(scores_b, a)
 
-        if scores_w.shape[0] > 10:
-            # w = tf.transpose(w)
-            # w_0 = []
-            indices_w_list = [] 
-            row_starts = []
-            cum_sum = 0
-            for c_out in tqdm(range(scores_sorted_w.shape[1]), desc=f"FC layer {l} pruning"):
-                indices_w = arg_scores_sorted_w[:, c_out][w_mask[:, c_out]]
-                # indices_w = tf.expand_dims(indices_w, axis=1)
-                # indices_w = tf.transpose(indices_w)
-                # w_0.append(w[0,c_out]) # because padding sets values to zero, the weight will at index zero will be set to zero, so we save it and set it back after pruning
-                # indices_w = tf.pad(indices_w, [[w.shape[0] - indices_w.shape[0], 0], [0, 0]], constant_values=0)
-                # assert indices_w.shape[0] == w.shape[0], f"Shape mismatch, indices_w.shape[0] = {indices_w.shape[0]}, w.shape[0] = {w.shape[0]}"
-                indices_w_list.append(indices_w)
-                row_starts.append(cum_sum)
-                cum_sum += indices_w.shape[0]
-            indices_w_list = tf.concat(indices_w_list, axis=0)
-            indices_w_list = tf.RaggedTensor.from_row_starts(indices_w_list, row_starts=row_starts)
-            indices_w_list = indices_w_list.to_tensor()
-            indices_w_list = tf.transpose(indices_w_list)
-            w = tf.tensor_scatter_nd_update(w, indices_w_list, tf.zeros_like(indices_w_list, dtype=tf.float64))
-            # w[c_out] = tf.reshape(w[c_out], [w[c_out].shape[1],])
-            # for c_out in range(scores_sorted_w.shape[1]):
-            #     if scores_w[0,c_out] != 0:
-            #         w = tf.tensor_scatter_nd_update(w, [[0, c_out]], [w_0[c_out]])
-            weight[l] = w
-
+        if scores_w.shape[0] > 10: # do we still need this?
+            weight[l] = w * w_mask
+            fc_count += tf.reduce_sum(w_mask)
         if scores_b.shape[0] > 10:
-            indices_b = arg_scores_sorted_b[(scores_b.shape[0]-pruned_scores_b.shape[0]):]
-            bias[l] = tf.tensor_scatter_nd_update(bias[l], tf.expand_dims(indices_b, axis=0), [0.0])
+            bias[l] = b * b_mask 
+    #############################################
+    #############################################
+    #############################################
+        
+
+
+
+        # scores_sorted_w = tf.sort(scores_w, axis=0, direction='DESCENDING')
+        # arg_scores_sorted_w = tf.argsort(scores_w, axis=0, direction='DESCENDING')
+        # scores_sorted_b = tf.sort(scores_b, axis=0, direction='DESCENDING')
+        # arg_scores_sorted_b = tf.argsort(scores_b, axis=0, direction='DESCENDING')
+        
+        # # pruning, calculate the index i where the cumulative sum of the scores is >= a
+        # w_mask = w_mask_fn(scores_sorted_w, a)
+        # pruned_scores_b = b_pruned_scores(scores_sorted_b, a)
+
+        # if scores_w.shape[0] > 10:
+        #     # w = tf.transpose(w)
+        #     # w_0 = []
+        #     indices_w_list = [] 
+        #     row_starts = []
+        #     cum_sum = 0
+        #     for c_out in tqdm(range(scores_sorted_w.shape[1]), desc=f"FC layer {l} pruning"):
+        #         indices_w = arg_scores_sorted_w[:, c_out][w_mask[:, c_out]]
+        #         # indices_w = tf.expand_dims(indices_w, axis=1)
+        #         # indices_w = tf.transpose(indices_w)
+        #         # w_0.append(w[0,c_out]) # because padding sets values to zero, the weight will at index zero will be set to zero, so we save it and set it back after pruning
+        #         # indices_w = tf.pad(indices_w, [[w.shape[0] - indices_w.shape[0], 0], [0, 0]], constant_values=0)
+        #         # assert indices_w.shape[0] == w.shape[0], f"Shape mismatch, indices_w.shape[0] = {indices_w.shape[0]}, w.shape[0] = {w.shape[0]}"
+        #         indices_w_list.append(indices_w)
+        #         row_starts.append(cum_sum)
+        #         cum_sum += indices_w.shape[0]
+        #     indices_w_list = tf.concat(indices_w_list, axis=0)
+        #     indices_w_list = tf.RaggedTensor.from_row_starts(indices_w_list, row_starts=row_starts)
+        #     indices_w_list = indices_w_list.to_tensor()
+        #     indices_w_list = tf.transpose(indices_w_list)
+        #     w = tf.tensor_scatter_nd_update(w, indices_w_list, tf.zeros_like(indices_w_list, dtype=tf.float64))
+        #     # w[c_out] = tf.reshape(w[c_out], [w[c_out].shape[1],])
+        #     # for c_out in range(scores_sorted_w.shape[1]):
+        #     #     if scores_w[0,c_out] != 0:
+        #     #         w = tf.tensor_scatter_nd_update(w, [[0, c_out]], [w_0[c_out]])
+        #     weight[l] = w
+
+        # if scores_b.shape[0] > 10:
+        #     indices_b = arg_scores_sorted_b[(scores_b.shape[0]-pruned_scores_b.shape[0]):]
+        #     bias[l] = tf.tensor_scatter_nd_update(bias[l], tf.expand_dims(indices_b, axis=0), [0.0])
 
         X_prune = tf.nn.leaky_relu(tf.add(tf.matmul(X_prune, w), b))
     return weight, bias, fc_count
@@ -389,3 +424,34 @@ def b_pruned_scores(scores_sorted, a):
     cumulative_sum = tf.cumsum(scores_sorted, axis=0)
     mask = tf.math.greater(cumulative_sum, a)
     return scores_sorted[mask]
+
+def step_activation(scores, a):
+    """
+    Note:
+        Currently only implemented for FNN layers, not conv layers.
+        
+        If working with FNN layers, this would be a simplification of the
+        current CNN workflow, as we wouldnt need to sort the scores etc.
+        Multiplying into the weight matrix would need to be done carefully
+        as the shape of the weight matrix in the CNN is (kernel_height, 
+        kernel_width, num_channels_in, num_channels_out) instead of a list
+        of weight matrices of shape (num_channels_in, num_channels_out) in
+        the FNN layers.
+
+    Returns a step activation function, which can be used to create a mask
+    for pruning, specifically to get around TF limitations of ragged tensors
+    found in fc_pruning. The step function is centred around a/(m_{l-1}), where
+    a is the pruning threshold, and m_{l-1} is the number of neurons in the 
+    l-1 th layer. Any value less than the threshold is set to 0, any value 
+    greater than the threshold is set to 1.
+
+    Args:
+        scores (Tensor): Tensor containing the importance scores
+        of the neurons in the l th layer.
+        a (float): Pruning threshold.
+
+    Returns:
+        mask (Tensor): Tensor containing the mask for pruning.
+    """    
+    return tf.cast(tf.math.greater(scores, (a/scores.shape[0])), tf.float64)
+
