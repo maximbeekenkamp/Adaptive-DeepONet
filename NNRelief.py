@@ -4,7 +4,7 @@ from tqdm import tqdm
 import sys
 
 from DeepONet import DeepONet
-def pruning(network: DeepONet, load_bool, w_b_dict, F, X_tr, Xmin, Xmax, stride, a_conv=0.9, a_fc=0.95): #maybe different alpha for trunk network?
+def pruning(network: DeepONet, load_bool, w_b_dict, F, X_tr, Xmin, Xmax, stride, a_conv=0.9, a_fc=0.95): 
     """
     NNRelief pruning algorithm wrapper function. Goes through our w_b_dict and prunes each 
     layer in the network sequentially. As our w_b_dict contains both the weights and biases for 
