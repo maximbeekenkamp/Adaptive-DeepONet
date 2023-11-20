@@ -186,7 +186,7 @@ def fc_pruning(weight, bias, X_prune, a=0.95):
     # Open to try different activation functions, but I think a classic step function would work best. Other activations functions,
     # because theyre smooth, will have a band of values that are neither 0 or 1, which will cause problems when we multiply the mask
     # to the weight matrix. Ideally, we want a mask that is either 0 or 1, so that when we multiply it to the weight matrix, we get
-    # either 0 or the original value. 
+    # either 0 or the original value.
     
     fc_count = 0
     for l in range(len(weight)):
