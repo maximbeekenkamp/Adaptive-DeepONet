@@ -351,7 +351,7 @@ def conv_pruning(network:DeepONet, weight, bias, X_prune, stride, a=0.9):
     scores /= X_prune.shape[0]
     bias_times_sqrt = tf.abs(bias) * tf.sqrt(tf.cast(X_prune.shape[1] * X_prune.shape[2], tf.float64))
 
-    S_c_out = (tf.reduce_sum(scores, axis=0) + bias_times_sqrt)
+    S_c_out = (tf.reduce_sum(scores, axis=0) + bias_times_sqrt) 
     
     scores_w = scores / S_c_out
     scores_b = tf.abs(bias) * bias_times_sqrt / S_c_out
